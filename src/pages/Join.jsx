@@ -8,12 +8,85 @@ import {
   Typography,
 } from "@mui/material";
 import TagIcon from "@mui/icons-material/Tag";
-import React from "react";
+import React, { useState } from "react";
 import { LoadingButton } from "@mui/lab";
 import { Link } from "react-router-dom";
+import { useEffect } from "react";
+import "../firebase";
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  updateProfile,
+} from "firebase/auth";
+import md5 from "md5";
+import { getDatabase, ref, set } from "firebase/database";
+import { useDispatch } from "react-redux";
+import { setUser } from "../store/userReducer";
+
+const IsPasswordValid = (password, confirmPassword) => {
+  if (password.length < 6 || confirmPassword.length < 6) {
+    return false;
+  } else if (password !== confirmPassword) {
+    return false;
+  } else {
+    return true;
+  }
+};
 
 function Join() {
-  const handleSubmit = () => {};
+  const dispatch = useDispatch();
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    const name = data.get("name");
+    const email = data.get("email");
+    const password = data.get("password");
+    const confirmPassword = data.get("confirmPassword");
+    console.log(name, email, password, confirmPassword);
+    if (!name || !email || !password || !confirmPassword) {
+      setError("모든 항목을 입력해주세요.");
+      return;
+    }
+
+    if (!IsPasswordValid(password, confirmPassword)) {
+      setError("비밀번호를 확인하세요.");
+      return;
+    }
+    postUserData(name, email, password);
+  };
+
+  const postUserData = async (name, email, password) => {
+    setLoading(true);
+    try {
+      const { user } = await createUserWithEmailAndPassword(
+        getAuth(),
+        email,
+        password
+      );
+      await updateProfile(user, {
+        displayName: name,
+        photoURL: `https://www.gravatar.com/avatar/${md5(email)}?d=retro`,
+      });
+      await set(ref(getDatabase(), "users/" + user.uid), {
+        name: user.displayName,
+        avatar: user.photoURL,
+      });
+      dispatch(setUser(user));
+    } catch (e) {
+      setError(e.message);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!error) return;
+    setTimeout(() => {
+      setError("");
+    }, 3000);
+  }, [error]);
+
   return (
     <Container component="main" maxWidth="xs">
       <Box
@@ -62,7 +135,7 @@ function Join() {
             </Grid>
             <Grid item xs={12}>
               <TextField
-                name="confirmPassWord"
+                name="confirmPassword"
                 required
                 fullWidth
                 label="확인 비밀번호"
@@ -70,15 +143,18 @@ function Join() {
               />
             </Grid>
           </Grid>
-          <Alert sx={{ mt: 3 }} severity="error">
-            에러메세지
-          </Alert>
+          {error ? (
+            <Alert sx={{ mt: 3 }} severity="error">
+              {error}
+            </Alert>
+          ) : null}
           <LoadingButton
             type="submit"
             fullWidth
             variant="contained"
             color="secondary"
             sx={{ mt: 3, mb: 2 }}
+            loading={loading}
           >
             회원가입
           </LoadingButton>
