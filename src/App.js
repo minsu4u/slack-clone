@@ -1,3 +1,5 @@
+import { CircularProgress } from "@mui/material";
+import { Stack } from "@mui/system";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -21,13 +23,24 @@ function App() {
     });
     return () => unsubscribe();
   }, [dispatch]);
+
+  if (isLoading) {
+    return (
+      <Stack alignItems="center" justifyContent="center" height="100vh">
+        <CircularProgress color="secondary" size={150} />
+      </Stack>
+    );
+  }
   return (
     <Routes>
       <Route
         path="/"
         element={currentUser ? <Main /> : <Navigate to="/login" />}
       />
-      <Route path="/login" element={<Login />} />
+      <Route
+        path="/login"
+        element={currentUser ? <Navigate to="/" /> : <Login />}
+      />
       <Route
         path="/join"
         element={currentUser ? <Navigate to="/" /> : <Join />}

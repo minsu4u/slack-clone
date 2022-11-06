@@ -14,15 +14,16 @@ import { useSelector } from "react-redux";
 import { useState } from "react";
 import "../firebase";
 import { getAuth, signOut } from "firebase/auth";
+import { useCallback } from "react";
 
 function Header() {
   const { user } = useSelector((state) => state);
   const [anchorEl, setAnchorEl] = useState(null);
-  const handleOpenMenu = (event) => {
+  const handleOpenMenu = useCallback((event) => {
     setAnchorEl(event.currentTarget);
-  };
-  const handleCloseMenu = () => setAnchorEl(null);
-  const handleLogOut = async () => await signOut(getAuth());
+  }, []);
+  const handleCloseMenu = useCallback(() => setAnchorEl(null), []);
+  const handleLogOut = useCallback(async () => await signOut(getAuth()), []);
 
   return (
     <>
